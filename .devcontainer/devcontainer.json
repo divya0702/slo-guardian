@@ -1,0 +1,31 @@
+{
+  "name": "SLO Guardian",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true
+    }
+  },
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb"
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "docker compose up -d --wait",
+  "waitFor": "postCreateCommand",
+  "forwardPorts": [3000, 8080, 16686],
+  "portsAttributes": {
+    "3000": {
+      "label": "SLO Guardian dashboard",
+      "onAutoForward": "openPreview"
+    },
+    "8080": {
+      "label": "Control-plane API (/docs)",
+      "onAutoForward": "notify"
+    },
+    "16686": {
+      "label": "Jaeger",
+      "onAutoForward": "notify"
+    }
+  }
+}

@@ -26,6 +26,20 @@ Services → OpenTelemetry Collector → Jaeger → SLO Guardian control plane
 See [docs/architecture.md](docs/architecture.md) for the full architecture decision record and
 [docs/demo-script.md](docs/demo-script.md) for the three-minute walkthrough.
 
+## Try it instantly (GitHub Codespaces)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/divya0702/slo-guardian)
+
+No local install required. Opening a Codespace builds and starts the complete Docker Compose stack
+automatically (a few minutes on first launch) and generates random local tokens for you. Once the
+**Ports** tab shows port `3000` forwarded, open it for the dashboard (`8080` for the control-plane
+API docs, `16686` for Jaeger).
+
+This gives you the full deterministic demo flow: analyze an incident, refresh the recorded
+recommendation, rank candidates, run bounded live replay, and approve/deactivate a policy. The
+interactive GPT-5.6-through-Codex session described below still requires your own Codex sign-in,
+since Codex authentication is personal and is never proxied by the application.
+
 ## Prerequisites
 
 - Docker Desktop with Docker Compose v2 or newer.
