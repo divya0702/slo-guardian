@@ -1,0 +1,1 @@
+{"id":"correlated_latency","title":"Misleading correlated latency","request_count":100,"latency_ms":{"gateway":900,"checkout":850,"inventory":600,"pricing":610,"recommendations":40},"error_rate":{},"recommendation_retries":0,"recent_changes":[{"service":"inventory","summary":"Shared network route changed"}]}

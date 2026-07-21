@@ -1,0 +1,1 @@
+{"id":"retry_storm","title":"Recommendation retry storm","request_count":100,"latency_ms":{"gateway":1250,"checkout":1180,"inventory":25,"pricing":22,"recommendations":500},"error_rate":{"recommendations":0.35},"recommendation_retries":3,"recent_changes":[{"service":"checkout","summary":"Recommendation retry count changed from 1 to 3"}]}
