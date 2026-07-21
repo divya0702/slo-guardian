@@ -115,6 +115,25 @@ The operator must simulate and approve a stored policy ID in the dashboard.
 Codex authentication stays in Codex and follows the user's ChatGPT access. It is never passed to the
 application or MCP server. Local tokens remain environment variables; never commit `.env`.
 
+## How this was built with Codex
+
+This project was built using Codex with GPT-5.6 as the primary development partner, not only as the
+in-product reasoning engine:
+
+- **Started from intent, not code.** Codex was given the idea, the background problem (trace-aware
+  load shedding, and the risk of letting generative AI touch production control systems directly),
+  and the target architecture before any implementation began.
+- **Planned before executing.** Codex laid out an implementation plan and task list first. Each task
+  was then completed and reviewed one at a time, rather than accepting one large, unreviewed diff.
+- **Verified against a real running stack.** After each milestone, the actual Docker Compose stack was
+  started, exercised with real requests, and the observed results were checked before moving on.
+  Failures and fixes were fed straight back into the same Codex session.
+- **Migrated off a paid API key mid-build.** The project initially called the OpenAI API directly
+  with a billed key. Partway through, that was switched to the credential-free approach described
+  above — the operator's own signed-in Codex session plus a local MCP server. The switch was quick
+  because the reasoning plane was already isolated behind a stable interface, so no other part of the
+  system had to change.
+
 ## Scenarios
 
 Twelve scenarios cover healthy traffic, optional dependency latency, retries, timeouts, saturation,
