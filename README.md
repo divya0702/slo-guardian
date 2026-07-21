@@ -1,6 +1,6 @@
 # SLO Guardian
 
-SLO Guardian watches distributed traces and service-level objectives, explains why a synthetic
+Service Level Objectives (SLO) Guardian watches distributed traces and service-level objectives, explains why a synthetic
 system is approaching failure, compares safe interventions, and applies an operator-approved demo
 policy before a cascading outage occurs.
 
