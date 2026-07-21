@@ -1,0 +1,4 @@
+interface:
+  display_name: "SLO Guardian Incident Response"
+  short_description: "Investigate SLO pressure through local MCP"
+  default_prompt: "Use $slo-guardian-incident-response to investigate the selected SLO Guardian scenario and submit safe cited policy candidates."

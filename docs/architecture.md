@@ -13,8 +13,10 @@ flowchart LR
   J --> T[Trace analyzer]
   T --> S[SLO engine]
   S --> A[Incident packet]
-  A --> L[GPT-5.6 or demo fixture]
-  L --> V[Pydantic + safety validator]
+  A --> M[Local stdio MCP server]
+  M --> L[GPT-5.6 in Codex session]
+  L --> M
+  M --> V[Pydantic + safety validator]
   V --> X[Simulator and deterministic ranker]
   X --> H[Operator approval]
   H --> E[Typed demo policy adapter]
@@ -37,10 +39,15 @@ fall back without failing checkout.
 GPT receives an immutable incident packet and returns a strict schema. Evidence and policies are
 validated locally. Simulation, approval, and activation accept only stored validated policy IDs.
 
-### ADR-004: GPT-5.6 uses Responses structured outputs
+### ADR-004: GPT-5.6 runs in Codex through local MCP
 
-Live mode uses `gpt-5.6-sol` with medium reasoning and no tools. Demo mode uses checked-in,
-scenario-specific structured fixtures and needs no external credential.
+The application contains no OpenAI SDK, model endpoint, or API key. A trusted repo-scoped Codex
+configuration selects `gpt-5.6-sol` with medium reasoning and starts a localhost-only stdio MCP
+server. The signed-in Codex session reads incident packets and submits strict recommendations.
+
+The MCP server exposes preparation, reading, submission, counterfactual simulation, and ranking.
+It deliberately exposes no approval, activation, deactivation, arbitrary HTTP, or shell tool.
+Recorded scenario-specific recommendations preserve a deterministic Docker-only demo.
 
 ### ADR-005: SQLite is sufficient for a local hackathon demo
 
@@ -59,4 +66,4 @@ after 30–600 seconds and never target an arbitrary host or production system.
 3. All cited evidence IDs must exist in the supplied packet.
 4. Model impact estimates are display-only; simulator measurements are authoritative.
 5. Internal policy endpoints require an environment-provided token.
-
+6. The MCP server accepts only a fixed localhost control-plane URL and cannot activate policies.

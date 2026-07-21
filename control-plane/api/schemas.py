@@ -168,13 +168,16 @@ class CandidateResult(StrictModel):
     policy_id: str
     proposal: PolicyProposal
     state: Literal["validated", "rejected", "simulated", "approved", "active", "expired"]
-    rejection_reasons: list[str] = []
+    rejection_reasons: list[str] = Field(default_factory=list)
 
 
 class AnalysisRequest(StrictModel):
     scenario_id: str
     source: Literal["fixture", "jaeger"] = "fixture"
-    use_live_model: bool = False
+
+
+class RecommendationSubmission(StrictModel):
+    recommendation: Recommendation
 
 
 class AnalysisResponse(StrictModel):
@@ -224,4 +227,3 @@ class ActivePolicy(StrictModel):
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
-

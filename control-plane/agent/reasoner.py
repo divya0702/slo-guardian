@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import json
-import os
-
 from api.schemas import (
     DisableRetries,
     IncidentPacket,
@@ -48,6 +45,38 @@ def _fixture(packet: IncidentPacket, fixture_name: str | None = None) -> Recomme
             risks=["Unnecessary intervention could degrade healthy traffic."],
             uncertainty="Fixture data is synthetic and bounded to the observation window.",
             confidence=0.98,
+        )
+
+    critical_diagnoses = {
+        "inventory_timeout": ("inventory", "Inventory timeouts are the primary critical-path failure."),
+        "pricing_errors": ("pricing", "Pricing errors are the primary critical-path failure."),
+        "gateway_saturation": ("gateway", "Gateway saturation is the primary source of request failure."),
+        "correlated_latency": ("inventory", "Shared critical-dependency latency, not recommendations, explains the correlation."),
+    }
+    if packet.scenario_id in critical_diagnoses:
+        service, diagnosis = critical_diagnoses[packet.scenario_id]
+        cited = [item.id for item in packet.evidence if item.service == service][:2] or evidence[:1]
+        candidates = [
+            PolicyProposal(
+                title=f"Escalate without unsafe shedding {index + 1}",
+                target=None,
+                conditions=[MetricCondition(metric="p99_latency_ms", operator="gt", value=300)],
+                action=NoAction(type="no_action"),
+                ttl_seconds=60,
+                evidence_ids=cited,
+                expected_effect="Protect critical checkout traffic while the critical dependency is repaired.",
+            )
+            for index in range(3)
+        ]
+        return Recommendation(
+            summary="No allowlisted load-shedding action can safely repair this critical-path incident.",
+            suspected_root_cause=diagnosis,
+            evidence_ids=cited,
+            alternative_hypotheses=["A shared network or client-pool constraint may contribute."],
+            candidates=candidates,
+            risks=["The incident continues until the critical dependency recovers."],
+            uncertainty="Synthetic traces do not include host-level resource telemetry.",
+            confidence=0.9,
         )
 
     target = PolicyTarget(
@@ -102,9 +131,15 @@ def _fixture(packet: IncidentPacket, fixture_name: str | None = None) -> Recomme
     if fixture_name == "hallucinated":
         candidates[0] = candidates[0].model_copy(update={"evidence_ids": ["ev_does_not_exist"]})
 
+    root_cause = {
+        "retry_storm": "Recommendation retry amplification is exhausting checkout dependency capacity.",
+        "recommendation_timeout": "Recommendation timeouts are holding the optional checkout branch open.",
+        "recommendation_saturation": "Recommendation worker saturation is driving optional dependency latency.",
+        "checkout_pool_exhaustion": "Recommendation retries are exhausting the checkout client pool.",
+    }.get(packet.scenario_id, "Recommendation latency and retries are driving checkout SLO pressure.")
     return Recommendation(
         summary="An optional dependency is consuming checkout latency and amplifying traffic.",
-        suspected_root_cause="Recommendation latency and retries are driving checkout SLO pressure.",
+        suspected_root_cause=root_cause,
         evidence_ids=list(dict.fromkeys(primary + checkout_evidence[:1])),
         alternative_hypotheses=[
             "A shared client pool may be increasing queue time.",
@@ -122,38 +157,11 @@ def _fixture(packet: IncidentPacket, fixture_name: str | None = None) -> Recomme
 
 def reason_about_incident(
     packet: IncidentPacket,
-    use_live_model: bool = False,
     fixture_name: str | None = None,
 ) -> Recommendation:
-    if not use_live_model:
-        return _fixture(packet, fixture_name)
+    """Return the recorded deterministic recommendation used by standalone demo mode.
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is required when use_live_model=true")
-
-    from openai import OpenAI
-
-    client = OpenAI(api_key=api_key, timeout=45.0, max_retries=1)
-    prompt = (
-        "Diagnose this synthetic distributed-systems incident. Return exactly three distinct, "
-        "bounded policy candidates. Cite only evidence IDs present in the packet. Treat allowed "
-        "actions as an exhaustive vocabulary. Never claim that a policy was applied.\n\n"
-        + json.dumps(packet.model_dump(mode="json"), sort_keys=True)
-    )
-    response = client.responses.parse(
-        model=os.getenv("OPENAI_MODEL", "gpt-5.6-sol"),
-        reasoning={"effort": "medium"},
-        input=[
-            {
-                "role": "developer",
-                "content": "You are an incident reasoner. Output untrusted proposals, not executable instructions.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        text_format=Recommendation,
-    )
-    if response.output_parsed is None:
-        raise RuntimeError("model refused or returned no structured recommendation")
-    return response.output_parsed
-
+    Interactive GPT reasoning is deliberately outside the web application. Codex reads incident
+    packets and submits untrusted structured recommendations through the local MCP server.
+    """
+    return _fixture(packet, fixture_name)

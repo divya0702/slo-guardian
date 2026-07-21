@@ -1,0 +1,19 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
+
+[mcp_servers.slo_guardian]
+enabled = true
+required = false
+command = "python"
+args = ["mcp_server/server.py"]
+cwd = ".."
+startup_timeout_sec = 20.0
+tool_timeout_sec = 60.0
+enabled_tools = [
+  "list_scenarios",
+  "prepare_incident",
+  "get_incident",
+  "submit_recommendation",
+  "simulate_candidate",
+  "rank_candidates",
+]

@@ -1,0 +1,144 @@
+x-service-env: &service-env
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  INTERNAL_REPLAY_TOKEN: ${INTERNAL_REPLAY_TOKEN:-local-demo-token}
+  ALLOW_SCENARIO_OVERRIDES: ${ALLOW_SCENARIO_OVERRIDES:-true}
+  LIVE_LATENCY_SCALE: ${LIVE_LATENCY_SCALE:-0.15}
+  FAULT_SEED: ${FAULT_SEED:-slo-guardian}
+
+x-app-service: &app-service
+  build:
+    context: .
+    dockerfile: services/Dockerfile
+  restart: unless-stopped
+  depends_on:
+    otel-collector:
+      condition: service_started
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+    interval: 5s
+    timeout: 3s
+    retries: 12
+
+services:
+  gateway:
+    <<: *app-service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: gateway
+      CHECKOUT_URL: http://checkout:8000
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      otel-collector:
+        condition: service_started
+      checkout:
+        condition: service_healthy
+
+  checkout:
+    <<: *app-service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: checkout
+      INVENTORY_URL: http://inventory:8000
+      PRICING_URL: http://pricing:8000
+      RECOMMENDATIONS_URL: http://recommendations:8000
+    depends_on:
+      otel-collector:
+        condition: service_started
+      inventory:
+        condition: service_healthy
+      pricing:
+        condition: service_healthy
+      recommendations:
+        condition: service_healthy
+
+  inventory:
+    <<: *app-service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: inventory
+
+  pricing:
+    <<: *app-service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: pricing
+
+  recommendations:
+    <<: *app-service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: recommendations
+
+  control-plane:
+    build:
+      context: .
+      dockerfile: control-plane/Dockerfile
+    restart: unless-stopped
+    environment:
+      DEMO_MODE: ${DEMO_MODE:-true}
+      DATABASE_URL: sqlite:////data/slo-guardian.db
+      SCENARIOS_DIR: /app/scenarios
+      JAEGER_QUERY_URL: http://jaeger:16686
+      GATEWAY_URL: http://gateway:8000
+      CHECKOUT_URL: http://checkout:8000
+      INTERNAL_REPLAY_TOKEN: ${INTERNAL_REPLAY_TOKEN:-local-demo-token}
+      MCP_SUBMISSION_TOKEN: ${MCP_SUBMISSION_TOKEN:-local-mcp-token}
+      CORS_ORIGINS: http://localhost:3000
+    volumes:
+      - slo-data:/data
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      gateway:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/readyz')"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      control-plane:
+        condition: service_healthy
+
+  otel-collector:
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector:0.119.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    depends_on:
+      jaeger:
+        condition: service_started
+
+  jaeger:
+    image: quay.io/jaegertracing/all-in-one:1.65.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "127.0.0.1:16686:16686"
+
+  integration-tests:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: tests/Dockerfile
+    environment:
+      CONTROL_PLANE_URL: http://control-plane:8080
+      GATEWAY_URL: http://gateway:8000
+      JAEGER_QUERY_URL: http://jaeger:16686
+    depends_on:
+      control-plane:
+        condition: service_healthy
+
+volumes:
+  slo-data:

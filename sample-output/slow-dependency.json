@@ -1,0 +1,43 @@
+{
+  "conditions": "Synthetic fixture, 100-request deterministic window",
+  "incident_id": "inc_ebdf52619c",
+  "checkout": {
+    "p99_ms": 1162.96,
+    "latency_budget_remaining_percent": 0.0,
+    "status": "breached"
+  },
+  "recommendations": {
+    "p99_ms": 851.22,
+    "retry_amplification": 3.0,
+    "status": "breached"
+  },
+  "cited_evidence": [
+    "ev_e560b3e73e1f",
+    "ev_8e80690377d3",
+    "ev_885bda77eb4e"
+  ],
+  "ranked_counterfactuals": [
+    {
+      "rank": 1,
+      "action": "serve_fallback",
+      "projected_checkout_p99_ms": 382.0,
+      "optional_degradation_percent": 100.0,
+      "critical_rejected": 0
+    },
+    {
+      "rank": 2,
+      "action": "disable_retries",
+      "projected_checkout_p99_ms": 764.67,
+      "optional_degradation_percent": 0.0,
+      "critical_rejected": 0
+    },
+    {
+      "rank": 3,
+      "action": "shed_optional_traffic",
+      "projected_checkout_p99_ms": 812.5,
+      "optional_degradation_percent": 50.0,
+      "critical_rejected": 0
+    }
+  ]
+}
+
