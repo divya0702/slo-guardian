@@ -11,6 +11,22 @@ Prove four things in one story:
 
 The closing line is: **GPT proposes, deterministic code decides, and the operator approves.**
 
+## Recording setup
+
+This is a self-recorded video: capture your screen with whatever tool you have (OBS, Zoom, the
+Windows Game Bar, etc.) and narrate live from this script. There is no dependency on any
+particular recording tool — only on the dashboard, and optionally Codex, being ready first.
+
+**If Codex is not installed or signed in on the machine you record on**, skip objective #2's live
+transcript and record the dashboard-only path instead: `Reset` → `Analyze incident` → `Rank all` →
+`Live replay` → `Approve & activate`. This was verified end-to-end against the running stack and
+produces the same four panels, evidence IDs, three candidates, ranking, and TTL-bound policy —
+because `Analyze incident` already seeds panel 03 from the same recorded fixture Codex would
+submit through the MCP server (see `control-plane/agent/reasoner.py`). Drop the "genuine GPT-5.6
+session" language from the 0:45–1:20 beat in that case and instead say the reasoning panel reflects
+the same schema and validation path a live Codex session produces, since no live model call is
+being shown.
+
 ## Before recording
 
 Do this before the timer starts:
@@ -119,6 +135,15 @@ Do not click **Reset** or **Analyze incident** again after the Codex run: those 
 
 **Point at:** The selected top-ranked candidate and the green critical-traffic safety result.
 
+Using the deterministic fixture (`sample-output/slow-dependency.json`), the ranking table reads:
+
+- Current checkout p99: `~1120 ms` (the live baseline the simulator just measured — close to, but not identical to, the `1162.96 ms` evidence figure from panel 01, since that one was captured at incident time).
+- Predicted checkout p99 for the top candidate: `382.0 ms`.
+- Critical requests rejected: `0`.
+- Optional degradation: `100%`.
+
+This predicted/counterfactual row is what matches the fixture exactly — verified live against the running stack. Do not restate these as the Live Replay numbers in the next beat; those are measured separately.
+
 ### 1:48–2:22 — Measure before applying
 
 **Action:** Click **Live replay**.
@@ -133,12 +158,7 @@ Do not click **Reset** or **Analyze incident** again after the Codex run: those 
 
 > In this synthetic run, checkout improves while critical rejected requests remain zero. The optional experience degrades, but checkout remains available. These measured simulator results replace the model's untrusted impact estimate.
 
-If using the deterministic sample output, the expected comparison is:
-
-- Current checkout p99: `1162.96 ms`.
-- Fallback counterfactual p99: `382.0 ms`.
-- Critical requests rejected: `0`.
-- Optional degradation: `100%` while the fallback is active.
+Live Replay runs real bounded synthetic traffic, so its **Observed** column is a fresh measurement each time and will not match the `382.0 ms` counterfactual exactly — in one rehearsal run it read `274.64 ms`. Do not pre-state a specific observed number in narration; read whatever is on screen. What should stay constant: critical requests rejected `0`, critical success `100%`, optional degraded `100%`.
 
 Label these numbers as synthetic; do not describe them as production performance.
 
@@ -189,6 +209,7 @@ If time is cut short, say:
 - **Live replay varies slightly:** “Live timing varies by host; the deterministic counterfactual is the acceptance oracle, and both results are labeled separately.”
 - **Jaeger has not populated yet:** “The deterministic fixture adapter uses the same normalized span contract, so the SLO, evidence, validation, and simulation pipeline remains reproducible.”
 - **Approval is disabled:** “Approval requires a stored candidate to reach the simulated state first. The state machine is enforcing the workflow.”
+- **Refresh MCP result looks unchanged after the Codex run:** “Analyze incident already seeds this panel from a recorded fixture by design — Codex reasoning runs entirely outside the web app. Refresh MCP result only changes the panel once the session actually calls `submit_recommendation`; if that call didn’t land, the whole ranking and replay pipeline still runs identically on the fixture data.”
 
 ## Likely judge questions
 
